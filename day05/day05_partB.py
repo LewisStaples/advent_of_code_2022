@@ -41,8 +41,14 @@ with open(input_filename) as f:
             quantity_int = int(quantity_string)
             from_int = int(from_string)
             to_int = int(to_string)
+
+            dummy = 123
+
             for i in range(quantity_int):
-                stacks[to_int].insert(0, stacks[from_int].pop(0))
+                stacks[to_int].insert(i, stacks[from_int].pop(0))
+
+                dummy = 123
+
         else:
             # This line will be ignored
             continue
