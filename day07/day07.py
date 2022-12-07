@@ -2,19 +2,38 @@
 # https://adventofcode.com/2022/day/7
 
 
+from enum import Enum
+
+class Prompt_mode(Enum):
+    COMMAND_MODE = 1
+    LIST_MODE = 2
 class directory_structure:
     def __init__(self):
         self.current_directory = None
+        self.mode = Prompt_mode.COMMAND_MODE
 
     def cd(self, directory_param):
+        if self.mode != Prompt_mode.COMMAND_MODE:
+            raise ValueError('Error: cd command is being run while in mode ' + self.mode)
         if directory_param == '/':
             self.current_directory = '/'
             return
         else:
             # Require that 'cd /' be the first statement !!!
             if self.current_directory is None:
-                raise ValueError('You must run cd / before changing directory to anywhere else')
-        raise(f'More code to be written to handle: cd {directory_param}')
+                raise ValueError('Error: you must run cd / before changing directory to anywhere else')
+
+        if directory_param == '..':
+            raise ValueError('More code needs to be written to handle: cd ' + directory_param)
+        else:
+            self.current_directory += directory_param + '/'
+        
+        dummy = 123
+
+    def ls(self, params):
+        assert params is None
+
+        dummy = 123
 
 
 ds = directory_structure()
@@ -30,8 +49,12 @@ with open(input_filename) as f:
 
         # Handling a command passed to command line
         if in_string[:2] == '$ ':
-            command_str, params_str = in_string[2:].split(' ')
-            # globals()[command_str](params_str)
+            in_string = in_string[2:]
+            if ' ' in in_string:
+                command_str, params_str = in_string.split(' ')
+            else:
+                command_str = in_string
+                params_str = None
             method_to_run = getattr(ds, command_str)
             method_to_run(params_str)
 
