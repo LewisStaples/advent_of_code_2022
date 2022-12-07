@@ -93,5 +93,16 @@ total_dirs_at_most_100k = 0
 for i,k in directories_total_sizes.items():
     if k <= 100000:
         total_dirs_at_most_100k += k
-
 print(f'The answer for part A: total sizes of all directories {total_dirs_at_most_100k}\n')
+
+# Now solve the part B problem
+filesize_to_delete = 30000000 + directories_total_sizes['/'] - 70000000
+for size in sorted(directories_total_sizes.values()):
+    print(size, end=' ')
+    if size < filesize_to_delete:
+        print('is not large enough')
+    else:
+        print ('is large enough')
+    # if size > 
+dummy = 123
+
