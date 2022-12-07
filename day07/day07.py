@@ -5,23 +5,25 @@
 from enum import Enum
 
 class Prompt_mode(Enum):
-    COMMAND_MODE = 1
-    LIST_MODE = 2
+    COMMAND_MODE = 1      # Taking commands from the user
+    LIST_MODE = 2   # Not taking commands from the user
 class directory_structure:
     def __init__(self):
         self.current_directory = None
-        self.mode = Prompt_mode.COMMAND_MODE
+        self.prompt_mode = Prompt_mode.COMMAND_MODE
+        self.directory_structure = dict()
 
     def cd(self, directory_param):
-        if self.mode != Prompt_mode.COMMAND_MODE:
-            raise ValueError('Error: cd command is being run while in mode ' + self.mode)
-        if directory_param == '/':
-            self.current_directory = '/'
+        if self.prompt_mode != Prompt_mode.COMMAND_MODE:
+            raise ValueError('Error: cd command is being run while in mode ' + self.prompt_mode)
+        if directory_param[0] == '/':
+            # Change the directory to the given absolute path
+            self.current_directory = directory_param
             return
         else:
-            # Require that 'cd /' be the first statement !!!
+            # Require that the current directory be known before attempting a relative change of directory
             if self.current_directory is None:
-                raise ValueError('Error: you must run cd / before changing directory to anywhere else')
+                raise ValueError('Error: you must specified the absolute path before making a relative change to the path')
 
         if directory_param == '..':
             if self.current_directory[-1] is not '/':
@@ -32,13 +34,24 @@ class directory_structure:
         else:
             self.current_directory += directory_param + '/'
         
-        dummy = 123
 
     def ls(self, params):
         assert params is None
+        if self.current_directory in self.directory_structure:
+            return
+        # implicit else ... fill in the directory's contents
+        self.directory_structure[self.current_directory] = dict()
+        self.prompt_mode = Prompt_mode.LIST_MODE
 
-        dummy = 123
-
+    def new_listing(self, input_line):
+        item_characteristic, item_name = input_line.split(' ')
+        if item_characteristic == 'dir':
+            item_type = 'dir'
+        else:
+            item_type = 'file'
+        self.directory_structure[self.current_directory][item_name] = {'item_type': item_type}
+        if item_type == 'file':
+            self.directory_structure[self.current_directory][item_name]['file_size'] = int(item_characteristic)
 
 ds = directory_structure()
 
@@ -53,6 +66,7 @@ with open(input_filename) as f:
 
         # Handling a command passed to command line
         if in_string[:2] == '$ ':
+            ds.prompt_mode = Prompt_mode.COMMAND_MODE
             in_string = in_string[2:]
             if ' ' in in_string:
                 command_str, params_str = in_string.split(' ')
@@ -61,9 +75,6 @@ with open(input_filename) as f:
                 params_str = None
             method_to_run = getattr(ds, command_str)
             method_to_run(params_str)
-
-
-
-        
-
-
+        else:
+            if ds.prompt_mode == Prompt_mode.LIST_MODE:
+                ds.new_listing(in_string)
