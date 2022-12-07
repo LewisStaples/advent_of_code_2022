@@ -24,7 +24,11 @@ class directory_structure:
                 raise ValueError('Error: you must run cd / before changing directory to anywhere else')
 
         if directory_param == '..':
-            raise ValueError('More code needs to be written to handle: cd ' + directory_param)
+            if self.current_directory[-1] is not '/':
+                raise ValueError('Error: trying to cd .. against this directory: ' + self.current_directory)
+            self.current_directory = self.current_directory[:-1]
+            index_last_slash = self.current_directory.rfind('/')
+            self.current_directory = self.current_directory[:index_last_slash + 1]
         else:
             self.current_directory += directory_param + '/'
         
