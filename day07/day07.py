@@ -5,8 +5,8 @@
 from enum import Enum
 
 class Prompt_mode(Enum):
-    COMMAND_MODE = 1      # Taking commands from the user
-    LIST_MODE = 2   # Not taking commands from the user
+    COMMAND_MODE = 1  # Taking commands from the user
+    LIST_MODE = 2     # Not taking commands from the user
 class directory_structure:
     def __init__(self):
         self.current_directory = None
@@ -26,7 +26,7 @@ class directory_structure:
                 raise ValueError('Error: you must specified the absolute path before making a relative change to the path')
 
         if directory_param == '..':
-            if self.current_directory[-1] is not '/':
+            if self.current_directory[-1] != '/':
                 raise ValueError('Error: trying to cd .. against this directory: ' + self.current_directory)
             self.current_directory = self.current_directory[:-1]
             index_last_slash = self.current_directory.rfind('/')
@@ -56,14 +56,11 @@ class directory_structure:
 ds = directory_structure()
 
 # Reading input from the input file
-input_filename='input_sample0.txt'
+input_filename='input.txt'
 print(f'\nUsing input file: {input_filename}\n')
 with open(input_filename) as f:
     for in_string in f:
         in_string = in_string.rstrip()
-
-        print(in_string)
-
         # Handling a command passed to command line
         if in_string[:2] == '$ ':
             ds.prompt_mode = Prompt_mode.COMMAND_MODE
@@ -78,3 +75,23 @@ with open(input_filename) as f:
         else:
             if ds.prompt_mode == Prompt_mode.LIST_MODE:
                 ds.new_listing(in_string)
+
+def get_total_sizes(path):
+    ret_val = {path: 0}
+    for name, v in ds.directory_structure[path].items():
+        if v['item_type'] == 'file':
+            ret_val[path] += v['file_size']
+        elif v['item_type'] == 'dir':
+            ret_val |= get_total_sizes(path + name + '/') # feature added in Python 3.9
+            ret_val[path] += ret_val[path + name + '/']
+    return ret_val
+
+
+# Now solve the part A problem
+directories_total_sizes = get_total_sizes('/')
+total_dirs_at_most_100k = 0
+for i,k in directories_total_sizes.items():
+    if k <= 100000:
+        total_dirs_at_most_100k += k
+
+print(f'The answer for part A: total sizes of all directories {total_dirs_at_most_100k}\n')
