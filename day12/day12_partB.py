@@ -65,7 +65,7 @@ while True:
         if acceptable(distance_map, height_map, position_now, potential_new_position):
             set_distance_map(distance_map, position_now, potential_new_position)
             # if problem solved
-            if height_map[potential_new_position[0]][potential_new_position[1]] == 'S':
+            if height_map[potential_new_position[0]][potential_new_position[1]] in ['S','a']:
                 print(f'Fewest steps from E to S (modified part A) is: {distance_map[potential_new_position[0]][potential_new_position[1]]}\n')
                 sys.exit('Program completed successfully')
             next_positions.append(potential_new_position)
