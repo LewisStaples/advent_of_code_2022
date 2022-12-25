@@ -28,9 +28,14 @@ class Location:
             # original_location = self.location
             new_location = self.location + Location.directions[self.direction]
 
-            if board_map[new_location[0]][new_location[1]] in ['#',' ']:
+            if board_map[new_location[0]][new_location[1]] == '#': # in ['#',' ']:
+                return
+            elif board_map[new_location[0]][new_location[1]][0] == '[':
+                self.location = eval('board_map'+board_map[new_location[0]][new_location[1]])
                 return
 
+            # if board_map[new_location[0]][new_location[1]] == ' ':
+            #     return  # TO BE CHANGED LATER !!!!!!!!!
             # implicit else
             self.location = new_location
 
@@ -63,6 +68,7 @@ class Path:
 def get_input(input_filename):
     initial_position = None
     board_map = []
+    x_max = -1
     # Reading input from the input file
     print(f'\nUsing input file: {input_filename}\n')
     with open(input_filename) as f:
@@ -70,6 +76,7 @@ def get_input(input_filename):
         for line_num, in_string in enumerate(f):
             in_string = in_string.rstrip()
             this_line = list(in_string)
+            x_max = max(x_max, len(this_line) - 1)
             if line_num == 0:
                 board_map.append(list(' '*(len(in_string) + 2)))
                 initial_position = Location(
@@ -78,7 +85,34 @@ def get_input(input_filename):
             if len(this_line) > 0 and not this_line[0].isdigit():
                 this_line.append(' ')
                 this_line.insert(0, ' ')
+
+                for i in range(len(this_line)):
+                    ch = this_line[i]
+                    if ch == ' ':
+                        continue
+                    left_margin_i = i
+                    if ch == '#':
+                        right_margin_c = '#'
+                    if ch == '.':
+                        right_margin_c = f'[{line_num + 1}][{i}]'
+                    break
+
+                for i in range(len(this_line) - 1, 0, -1):
+                    ch = this_line[i]
+                    if ch == ' ':
+                        continue
+                    right_margin_i = i
+                    if ch == '#':
+                        left_margin_c = '#'
+                    if ch == '.':
+                        left_margin_c = f'[{line_num + 1}][{i}]'
+                    break
+
+                this_line[left_margin_i - 1] = left_margin_c
+                this_line[right_margin_i + 1] = right_margin_c
+
                 board_map.append(this_line)
+
     board_map.append(list(' '*len(board_map[-1])))
     if len(in_string) < 20:
         print(f'Path: {in_string}\n')
