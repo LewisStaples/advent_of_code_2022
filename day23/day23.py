@@ -35,18 +35,61 @@ def display_elf_map(elf_map, map_title):
     print()
 
 
-def get_proposed_moves(elf_map, round_number):
+def required_vacancies_not_present(required_vacancies, elf_map):
+    for vacancy in required_vacancies:
+        if vacancy in elf_map:
+            # Try a different i value
+            return True
+    return False
+
+
+def make_moves(elf_map, round_number):
     eight_compass_points = [
-        np.array([1,1]),
-        np.array([1,0]),
-        np.array([1,-1]),
-        np.array([0,1]),
-        np.array([0,-1]),
-        np.array([-1,1]),
-        np.array([-1,0]),
-        np.array([-1,-1])
+        np.array([1,0]),  # Right / East
+        np.array([1,1]),  # SE
+        np.array([0,1]),  # Down / South
+        np.array([-1,1]), # SW
+        np.array([-1,0]), # Left / West
+        np.array([-1,-1]), # NW
+        np.array([0,-1]), # Up / North
+        np.array([1,-1]), # NE
     ]
+    proposal_matrix = {
+        1:  {
+            'proposed_direction': eight_compass_points[6],
+            'required_vacancies': [
+                eight_compass_points[5],
+                eight_compass_points[6],
+                eight_compass_points[7],
+                ]
+            },
+        2:  {
+            'proposed_direction': eight_compass_points[2],
+            'required_vacancies': [
+                eight_compass_points[1],
+                eight_compass_points[2],
+                eight_compass_points[3],
+                ]
+            },
+        3:  {
+            'proposed_direction': eight_compass_points[4],
+            'required_vacancies': [
+                eight_compass_points[3],
+                eight_compass_points[4],
+                eight_compass_points[5],
+                ]
+            },
+        0:  {
+            'proposed_direction': eight_compass_points[0],
+            'required_vacancies': [
+                eight_compass_points[7],
+                eight_compass_points[0],
+                eight_compass_points[1],
+                ]
+            },
+    }
     proposed_moves = dict()
+
     for elf_location in elf_map:
         # Determine if this elf has at least one adjacent elf
         any_adjacents = False
@@ -57,21 +100,41 @@ def get_proposed_moves(elf_map, round_number):
                 any_adjacents = True
                 break
         if not any_adjacents:
-            break
+            continue
         
         # See which direction the elf proposes to move in
+        first_proposal_index = round_number % 4
+        for i in range(4):
+            proposal_index = (first_proposal_index + i) % 4
+            proposal_fields = proposal_matrix[proposal_index]
 
-        # Check if that proposed destination is already in proposed_moves
-        # If yes, mark that proposed_move as unreachable
+            proposed_destination = tuple(elf_location + proposal_fields['proposed_direction'])
+            required_vacancies = [tuple(elf_location + x) for x in proposal_fields['required_vacancies']]
+            if required_vacancies_not_present(required_vacancies, elf_map):
+                continue
+            else:
+                # break
 
+                # Check if that proposed destination is already in proposed_moves
+                # If yes, mark that proposed_move as unreachable with a None (it's a flag)
+                if proposed_destination in proposed_moves:
+                    proposed_moves[proposed_destination] = None
+                else:
+                    proposed_moves[proposed_destination] = tuple(elf_location)
+                break
 
+    # Disregarding any moves where more than one elf intends to move to there
+    proposed_moves_pruned = {k: v for k, v in proposed_moves.items() if v is not None}
+
+    elf_map -= set(proposed_moves_pruned.values())
+    elf_map.update(proposed_moves_pruned.keys())
+    dummy = 123
 
 
 
 def do_rounds(elf_map):
-    for round_number in range(1, 3):
-        # pad_edges(elf_map)
-        get_proposed_moves(elf_map, round_number)
+    for round_number in range(1, 4):
+        make_moves(elf_map, round_number)
         display_elf_map(elf_map, f'Elf map after round {round_number}')
 
 
@@ -82,7 +145,7 @@ def solve_problem(input_filename):
     do_rounds(elf_map)
 
 
-solve_problem('input_scenario0.txt')
+solve_problem('input_sample1.txt')
 
 # def test_sample_0():
 #     solve_problem('input_sample0.txt')
