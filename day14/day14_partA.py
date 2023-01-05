@@ -59,6 +59,8 @@ def display(rock_locations, sand_locations):
                 print('#', end = '')
             elif the_location in sand_locations:
                 print('O', end = '')
+            elif the_location == (500, 0):
+                print('+', end = '')
             else:
                 print('.', end = '')
         print()
@@ -97,9 +99,9 @@ def solve_problem(input_filename):
     # Drop sand
     print(f'\nAnswer to A: {drop_sand_get_count(rock_locations, rock_boundaries)}\n')
 
-solve_problem('input.txt')
+solve_problem('input_sample0.txt')
 
-# 
+#
     
 
 
