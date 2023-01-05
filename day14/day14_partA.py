@@ -37,17 +37,36 @@ def get_rock_locations(input_filename):
                 add_edge(rock_locations, rock_path_nodes, i)
     return rock_locations
     
-def get_barrier_boundaries(barrier_locations):
+def get_rock_boundaries(rock_locations):
     ret_val = {'highest_0': float('-inf'), 'lowest_0': float('inf'), 'highest_1': float('-inf'), 'lowest_1': float('inf')}
-    for location in barrier_locations:
+    for location in rock_locations:
         ret_val['highest_0'] = max(ret_val['highest_0'], location[0])
         ret_val['lowest_0'] = min(ret_val['lowest_0'], location[0])
         ret_val['highest_1'] = max(ret_val['highest_1'], location[1])
         ret_val['lowest_1'] = min(ret_val['lowest_1'], location[1])
     return ret_val
 
-def drop_sand_get_count(barrier_locations, barrier_boundaries):
-    location_size_start = len(barrier_locations)
+def display(rock_locations, sand_locations):
+    print(f'Sand count: {len(sand_locations)}')
+    if len(rock_locations) > 25:
+        return
+    rock_boundaries = get_rock_boundaries(rock_locations)
+    for y in range(0, rock_boundaries['highest_1'] + 1):
+        print(f'{y}  ', end = '')
+        for x in range(rock_boundaries['lowest_0'], rock_boundaries['highest_0'] + 1):
+            the_location = (x,y)
+            if the_location in rock_locations:
+                print('#', end = '')
+            elif the_location in sand_locations:
+                print('O', end = '')
+            else:
+                print('.', end = '')
+        print()
+    print()
+
+def drop_sand_get_count(rock_locations, rock_boundaries):
+    sand_locations = set()
+    # location_size_start = len(rock_locations)
     while True:
         sand_unit = [500, 0]
         while True:
@@ -56,32 +75,31 @@ def drop_sand_get_count(barrier_locations, barrier_boundaries):
             next_potential_sand_units.append([sand_unit[0] - 1, sand_unit[1] + 1])
             next_potential_sand_units.append([sand_unit[0] + 1, sand_unit[1] + 1])
 
-            dummy = 123
-
             for next_sand_unit in next_potential_sand_units:
-                if tuple(next_sand_unit) not in barrier_locations:
+                if tuple(next_sand_unit) not in rock_locations.union(sand_locations):
                     sand_unit = next_sand_unit
-                    if sand_unit[1] > barrier_boundaries['highest_1']:
-                        return len(barrier_locations) - location_size_start # this sand unit is falling endlessly
-                    break # found one of the three, so break from for loop
+                    if sand_unit[1] > rock_boundaries['highest_1']:
+                        display(rock_locations, sand_locations)
+                        return len(sand_locations) # this sand unit is falling endlessly
+                    # found one of the three, so break from for loop 
+                    # (because I/ you don't need to consider any of the others)
+                    break 
             if sand_unit != next_sand_unit:
-                barrier_locations.add(tuple(sand_unit))
+                display(rock_locations, sand_locations)
+                sand_locations.add(tuple(sand_unit))
                 break # None of the three options worked, so time to get another unit of sand
 
 
 def solve_problem(input_filename):
-    # Note that barrier_locations will initially be all rocks, but sand will be added to it later
-    barrier_locations = get_rock_locations(input_filename)
-    barrier_boundaries = get_barrier_boundaries(barrier_locations)
+    rock_locations = get_rock_locations(input_filename)
+    rock_boundaries = get_rock_boundaries(rock_locations)
 
     # Drop sand
-    print(f'Answer to A: {drop_sand_get_count(barrier_locations, barrier_boundaries)}\n')
+    print(f'\nAnswer to A: {drop_sand_get_count(rock_locations, rock_boundaries)}\n')
 
-# solve_problem('input.txt')
 solve_problem('input.txt')
 
-def test_sample_0():
-    solve_problem('input_sample0.txt')
+# 
     
 
 
