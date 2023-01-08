@@ -59,8 +59,8 @@ def get_diamond_points(sensor, beacon):
     manh_dist = get_manhattan_distance(sensor, beacon)
     for y in range(int(sensor.imag) - manh_dist - 1, int(sensor.imag) + manh_dist + 2):
         x_diff = manh_dist + 1 - abs(y - sensor.imag)
-        ret_val.add(abs(sensor.real - x_diff) + y*1j)
-        ret_val.add(abs(sensor.real + x_diff) + y*1j)
+        ret_val.add(sensor.real - x_diff + y*1j)
+        ret_val.add(sensor.real + x_diff + y*1j)
 
     return ret_val
 
