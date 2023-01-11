@@ -25,94 +25,6 @@ def create_valve(in_string):
     )
     return valve_constant
 
-# TESTING ONLY !!!!!!!!
-def see_if_match(this_vsip):
-    path = this_vsip['PATH']
-    if len(path) < 25:
-        return
-
-    if path[1] != 'DD':
-        return
-    if path[2] != 'OPENED':
-        return
-    
-
-    
-    if path[3] != 'CC':
-        return
-
-    if path[4] != 'BB':
-        return
-
-    if path[5] != 'OPENED':
-        return
-
-    if path[6] != 'AA':
-        return
-
-    if path[7] != 'II':
-        return
-
-    if path[8] != 'JJ':
-        return
-
-    if path[9] != 'OPENED':
-        return
-
-    if path[10] != 'II':
-        return
-
-    if path[11] != 'AA':
-        return
-
-    if path[12] != 'DD':
-        return
-
-    if path[13] != 'EE':
-        return
-
-    if path[14] != 'FF':
-        return
-
-    if path[15] != 'GG':
-        return
-
-    if path[16] != 'HH':
-        return
-
-    if path[17] != 'OPENED':
-        return
-
-    if path[18] != 'GG':
-        return
-
-    if path[19] != 'FF':
-        return
-
-    if path[20] != 'EE':
-        return
-
-    if path[21] != 'OPENED':
-        return
-
-    if path[22] != 'DD':
-        return
-
-    if path[23] != 'CC':
-        return
-
-    if path[24] != 'OPENED':
-        return
-
-    dummy = 123
-    
-    print()
-    print(f'SUCCESS ... State is:')
-    print(this_vsip)
-    print()
-    print()
-
-
 
 def get_flow_rate(new_vsip, valve_constants):
     '''
@@ -131,33 +43,32 @@ def special_append(new_vsip, valve_states__in_process, min_total_loss):
     # all path steps (opening a valve, or following a single tunnel) take one minute
     if len(new_vsip['PATH']) >= 31:
         min_total_loss = min(min_total_loss, new_vsip['TOTAL_LOSS'])
-
-        # if new_vsip['TOTAL_LOSS'] == 1651:
-        #     print()
-        #     print(new_vsip['PATH'])
-        #     print()
-
-        return
+        return min_total_loss
 
     # Do not keep considering new_vsip if it has a total loss that is greater
     # or equal than the smallest that has already been shown to lead to all 
     # valves being open
-    if new_vsip['TOTAL_LOSS'] >= min_total_loss:
-
-        # if new_vsip['TOTAL_LOSS'] == 1651:
-        #     print()
-        #     print(new_vsip['PATH'])
-        #     print()
-
-        return
+    if new_vsip['TOTAL_LOSS'] > min_total_loss:
+        return min_total_loss
 
     valve_states__in_process.append(new_vsip)
+    return min_total_loss
 
-    # TESTING ONLY .....
-    # for i, vs in enumerate(valve_states__in_process):
-        # print(f'{i}: {vs["PATH"]}')
-    # print()
-    # dummy = 123
+
+def has_repeat(new_vsip, option):
+    '''
+    Note that a returned value of True says to abandon new_vsip
+    '''
+    for i in range(len(new_vsip['PATH']) - 1, -1, -1):
+        if new_vsip['PATH'][i] == 'OPENED':
+            # Found valve opening ... good
+            return False
+            
+        if new_vsip['PATH'][i] == option:
+            # This is a repeat without any openings in between ... bad
+            return True
+    # If end reached ... good
+    return False
 
 valve_constants = dict()
 valve_states__in_process = [dict()]
@@ -197,24 +108,27 @@ while len(valve_states__in_process) > 0:
     this_vsip = valve_states__in_process.pop()
     current_location = this_vsip['CURRENT_LOCATION']
 
-    # TESTING ONLY !!!!!!!!
-    see_if_match(this_vsip)
+
 
     for option in valve_constants[current_location].valves_via_tunnel:
         new_vsip = copy.deepcopy(this_vsip)
         new_vsip['CURRENT_LOCATION'] = option
         curr_flow_loss = max_flow_rate - get_flow_rate(new_vsip, valve_constants)
         new_vsip['TOTAL_LOSS'] += curr_flow_loss
+
+        # Do not keep considering new_vsip if this is a repeat visit to that valve and there haven't been any valve openings since then
+        if has_repeat(new_vsip, option):
+            continue
+
         new_vsip['PATH'].append(option)
-        special_append(new_vsip, valve_states__in_process, min_total_loss)
+        min_total_loss = special_append(new_vsip, valve_states__in_process, min_total_loss)
 
     if this_vsip[current_location] == ValveState.IS_CLOSED:
         new_vsip = copy.deepcopy(this_vsip)
-        new_vsip[current_location] = ValveState.IS_OPEN
-
-        curr_flow_loss = max_flow_rate - get_flow_rate(new_vsip, valve_constants)
         new_vsip['TOTAL_LOSS'] += curr_flow_loss
         new_vsip['PATH'].append('OPENED')
+        curr_flow_loss = max_flow_rate - get_flow_rate(new_vsip, valve_constants)
+        new_vsip[current_location] = ValveState.IS_OPEN
         
         # conditional on whether at least one valve (with a flowrate) remains closed
         if curr_flow_loss > 0:
@@ -223,17 +137,9 @@ while len(valve_states__in_process) > 0:
         else:
             min_total_loss = min(min_total_loss, new_vsip['TOTAL_LOSS'])
 
-            # TESTING  ADFOAWIERFASDFASFASDASDFAFASDFASODFASIDFJASDFASDFOISDFASDF
-            # if new_vsip['PATH'][-1] == 'CC':
-            # if new_vsip['TOTAL_LOSS'] < 1733:
-            #     print()
-            #     print(f'Total Loss: {new_vsip["TOTAL_LOSS"]}')
-            #     print(new_vsip['PATH'])
-            #     print()
+
+print(f'The "total loss" is : {min_total_loss}')
+print(f'The answer to part A is {30 * max_flow_rate - min_total_loss}')
 
 
-print(f'The total loss is : {min_total_loss}')
-print(f'The answer is {30 * max_flow_rate - min_total_loss}')
-print('Path followed: ')
-dummy = 123
 
