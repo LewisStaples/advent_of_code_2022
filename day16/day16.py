@@ -1,7 +1,7 @@
 # adventOfCode 2022 day 16
 # https://adventofcode.com/2022/day/16
 
-import queue
+
 from dataclasses import dataclass
 # from enum import Enum
 # import copy
@@ -104,53 +104,37 @@ with open(input_filename) as f:
         if valve_constant.flow_rate > 0:
             NONZERO_VALVES.append(valve_constant.name)
 
+del input_filename
+del in_string
+del f
+del valve_constant
 
 
 for valve_orig in NONZERO_VALVES:
     SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[valve_orig] = {valve_orig: 0}
-    # valves_dest = {valve_orig:0}
-    # valves_dest = queue.PriorityQueue()
-    # valves_dest.put((0, valve_orig))
     valves_dest = {0:[valve_orig]}
     while len(SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[valve_orig]) < len(NONZERO_VALVES):
-    # while len(valves_dest) > 0:
-        # valve_old_dest, old_distance = valves_dest.popitem()
-        # old_distance, valve_old_dest = valves_dest.get()
         old_distance = min(valves_dest.keys())
         valve_old_dest = valves_dest[old_distance].pop()
         if len(valves_dest[old_distance]) == 0:
             del valves_dest[old_distance]
         for new_valve_dest in VALVE_CONSTANTS[valve_old_dest].valves_via_tunnel:
-            # if new_valve_dest in valves_dest:
-            #     continue
-
             if already_visited(new_valve_dest):
-                break
-
-            # for the_value in valves_dest.values():
-            #     if new_valve_dest in the_value:
-            #         # break and continue with loop  ....   for new_valve_dest
-            #         break
-
-
-            # valves_dest.put((old_distance + 1, new_valve_dest))
-            # valves_dest[new_valve_dest] = old_distance + 1
+                continue
             if old_distance + 1 not in valves_dest:
                 valves_dest[old_distance + 1] = []
             valves_dest[old_distance + 1].append(new_valve_dest)
-
             if VALVE_CONSTANTS[new_valve_dest].flow_rate > 0:
                 SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[valve_orig][new_valve_dest] = old_distance + 1
-
-                dummy = 123
-                
-        # valves_dest.put((float('inf'), valve_old_dest))
         if float('inf') not in valves_dest:
             valves_dest[float('inf')] = list()
         valves_dest[float('inf')].append(valve_old_dest)
-        
-        dummy = 123
 
+del valve_orig
+del valve_old_dest
+del old_distance
+del new_valve_dest
+del valves_dest
 
 
 dummy = 123
