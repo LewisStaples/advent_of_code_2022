@@ -3,8 +3,8 @@
 
 
 from dataclasses import dataclass
-# from enum import Enum
-# import copy
+from itertools import permutations
+import copy
 
 @dataclass
 class Valve:
@@ -12,10 +12,6 @@ class Valve:
     flow_rate: int
     valves_via_tunnel: list
 
-
-# class ValveState(Enum):
-#     IS_OPEN = 0
-#     IS_CLOSED = 1
 
 def create_valve(in_string):
     valve_constant = Valve(
@@ -26,71 +22,53 @@ def create_valve(in_string):
     return valve_constant
 
 
-# def get_flow_rate(new_vsip, valve_constants):
-#     '''
-#     This returns total flow rate (combining all open valves' flow together)
-#     '''
-#     ret_val = 0
-#     for label, v_s in new_vsip.items():
-#         if v_s == ValveState.IS_OPEN:
-#             ret_val += valve_constants[label].flow_rate
-#     return ret_val
+def get_pressure_released(valve, duration, extra_valves):
 
 
-# def special_append(new_vsip, valve_states__in_process, min_total_loss):
-#     # Do not keep considering new_vsip if it has run out of time
-#     # The elapsed time is calculated from the length of the path, since
-#     # all path steps (opening a valve, or following a single tunnel) take one minute
-#     if len(new_vsip['PATH']) >= 31:
-#         min_total_loss = min(min_total_loss, new_vsip['TOTAL_LOSS'])
-#         return min_total_loss
-
-#     # Do not keep considering new_vsip if it has a total loss that is greater
-#     # or equal than the smallest that has already been shown to lead to all 
-#     # valves being open
-#     if new_vsip['TOTAL_LOSS'] > min_total_loss:
-#         return min_total_loss
-
-#     valve_states__in_process.append(new_vsip)
-#     return min_total_loss
+    # print(f'Inputs: {duration}: {valve}, {extra_valves}')
 
 
-# def has_repeat(new_vsip, option):
-#     '''
-#     Note that a returned value of True says to abandon new_vsip
-#     '''
-#     for i in range(len(new_vsip['PATH']) - 1, -1, -1):
-#         if new_vsip['PATH'][i] == 'OPENED':
-#             # Found valve opening ... good
-#             return False
-            
-#         if new_vsip['PATH'][i] == option:
-#             # This is a repeat without any openings in between ... bad
-#             return True
-#     # If end reached ... good
-#     return False
+    curr_total_flow_rate = VALVE_CONSTANTS[valve].flow_rate
+    duration += 1
+    # ret_val = curr_total_flow_rate
+    ret_val = 0
+
+
+    
+    while True:
+        if len(extra_valves) == 0:
+            ret_val += curr_total_flow_rate * (30 - duration)
+            break
+        next_valve = extra_valves.pop(0)
+        time_interval = SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[valve][next_valve] + 1
+        duration += time_interval
+        if duration + time_interval >= 30:
+            ret_val += curr_total_flow_rate * (30 - duration)
+            break
+        ret_val += time_interval * curr_total_flow_rate
+        # if len(extra_valves) == 0:
+        #     break
+        # ret_val = duration * curr_total_flow_rate
+        valve = next_valve
+        curr_total_flow_rate += VALVE_CONSTANTS[valve].flow_rate
+    # print(ret_val)
+    return ret_val
+
 
 VALVE_CONSTANTS = dict()
 NONZERO_VALVES = list()
 SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES = dict()
 
-# valve_states__in_process = [dict()]
-# valve_states__finished = []
-
-# # This is defined to be the flow rate when all valves are open
-# max_flow_rate = 0
-
-# # This is defined to be the smallest total loss seen
-# min_total_loss = float('inf')
-
 def already_visited(new_valve_dest):
     for the_value in valves_dest.values():
         if new_valve_dest in the_value:
-            # break and continue with loop  ....   for new_valve_dest
+            # Determined that it's been already visited
             return True
+    # Hasn't been already visited
     return False
 
-# Reading input from the input file
+# Read input from the input file
+# Fill in VALVE_CONSTANTS and NONZERO_VALVES
 input_filename='input_sample0.txt'
 print(f'\nUsing input file: {input_filename}\n')
 with open(input_filename) as f:
@@ -103,13 +81,14 @@ with open(input_filename) as f:
         VALVE_CONSTANTS[valve_constant.name] = valve_constant
         if valve_constant.flow_rate > 0:
             NONZERO_VALVES.append(valve_constant.name)
-
+    print()
 del input_filename
 del in_string
 del f
 del valve_constant
 
-
+# Use VALVE_CONSTANTS and NONZERO_VALVES to develop a graph describing distances 
+# between all non-zero flowrate valves
 for valve_orig in NONZERO_VALVES:
     SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[valve_orig] = {valve_orig: 0}
     valves_dest = {0:[valve_orig]}
@@ -137,60 +116,55 @@ del new_valve_dest
 del valves_dest
 
 
-dummy = 123
+# If starting state was at a valve with a flowrate > 0, then SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES would have all that's needed to solve the problem.  However, both given examples have the starting position at a zero flowrate valve.
+
+known_valves = dict()
+curr_valves = {'AA': 0}
+next_valves = list()
+while len(curr_valves) > 0:
+    curr_valve, path_distance = curr_valves.popitem()
+    if curr_valve in known_valves:
+        continue
+    if curr_valve in NONZERO_VALVES:
+        known_valves[curr_valve] = path_distance
+        continue
+    else:
+        known_valves[curr_valve] = None
+    
+    for next_valve in VALVE_CONSTANTS[curr_valve].valves_via_tunnel:
+        if next_valve not in known_valves:
+            curr_valves[next_valve] = path_distance + 1
+
+valves_to_pop = list()
+for valve_id, distance in known_valves.items():
+    if distance is None:
+
+        valves_to_pop.append(valve_id)
+for valve_id in valves_to_pop:
+    known_valves.pop(valve_id)
+INITIAL_NONZERO_VALVES = known_valves
+del known_valves
+del valve_id
+del path_distance
+del next_valves
+del next_valve
+del distance
+del valves_to_pop
+del curr_valves
+del curr_valve
+
+# # TESTING ONLY !!!!!!
+# get_pressure_released('DD', 1, ['BB', 'JJ', 'HH', 'EE', 'CC'])
 
 
-#         max_flow_rate += int(in_string[23:].split(';')[0])
-#         if valve_constants[valve_constant.name].flow_rate > 0:
-#             valve_states__in_process[0][valve_constant.name] = ValveState.IS_CLOSED
-#         else:
-#             # Design decision: initially label valves with a flowrate of zero as "open"
-#             # (The program logic will choose whether or not to open valves with 
-#             # nonzero flowrate, and it will not bother wasting time on opening valves ]
-#             # with a zero flow rate.  This is because the goal is to maximize the total
-#             # pressure released in the first thirty minutes)
-#             valve_states__in_process[0][valve_constant.name] = ValveState.IS_OPEN
-
-# valve_states__in_process[0]['TOTAL_LOSS'] = 0
-# valve_states__in_process[0]['PATH'] = ['AA']
-# valve_states__in_process[0]['CURRENT_LOCATION'] = 'AA'
-
-# while len(valve_states__in_process) > 0:
-#     this_vsip = valve_states__in_process.pop()
-#     current_location = this_vsip['CURRENT_LOCATION']
 
 
+max_pressure_released = 0
+for init_valve, init_duration in INITIAL_NONZERO_VALVES.items():
+    remaining_valves = copy.copy(NONZERO_VALVES)
+    remaining_valves.remove(init_valve)
+    for extra_valves in permutations(remaining_valves, len(remaining_valves)):
+        max_pressure_released = max(max_pressure_released, get_pressure_released(init_valve, init_duration, list(extra_valves)))
 
-#     for option in valve_constants[current_location].valves_via_tunnel:
-#         new_vsip = copy.deepcopy(this_vsip)
-#         new_vsip['CURRENT_LOCATION'] = option
-#         curr_flow_loss = max_flow_rate - get_flow_rate(new_vsip, valve_constants)
-#         new_vsip['TOTAL_LOSS'] += curr_flow_loss
-
-#         # Do not keep considering new_vsip if this is a repeat visit to that valve and there haven't been any valve openings since then
-#         if has_repeat(new_vsip, option):
-#             continue
-
-#         new_vsip['PATH'].append(option)
-#         min_total_loss = special_append(new_vsip, valve_states__in_process, min_total_loss)
-
-#     if this_vsip[current_location] == ValveState.IS_CLOSED:
-#         new_vsip = copy.deepcopy(this_vsip)
-#         new_vsip['TOTAL_LOSS'] += curr_flow_loss
-#         new_vsip['PATH'].append('OPENED')
-#         curr_flow_loss = max_flow_rate - get_flow_rate(new_vsip, valve_constants)
-#         new_vsip[current_location] = ValveState.IS_OPEN
-        
-#         # conditional on whether at least one valve (with a flowrate) remains closed
-#         if curr_flow_loss > 0:
-#             # inside function -- conditional on whether out of time ... based on len(new_vsip['PATH'])
-#             special_append(new_vsip, valve_states__in_process, min_total_loss)
-#         else:
-#             min_total_loss = min(min_total_loss, new_vsip['TOTAL_LOSS'])
-
-
-# print(f'The "total loss" is : {min_total_loss}')
-# print(f'The answer to part A is {30 * max_flow_rate - min_total_loss}')
-
-
+print(f'Maximum pressure released of all paths is: {max_pressure_released}\n')
 
