@@ -22,7 +22,7 @@ def create_valve(in_string):
     return valve_constant
 
 
-def get_pressure_released(valve, duration, extra_valves):
+def get_pressure_released__old(valve, duration, extra_valves, max_pressure_released):
 
 
     # print(f'Inputs: {duration}: {valve}, {extra_valves}')
@@ -39,6 +39,10 @@ def get_pressure_released(valve, duration, extra_valves):
         if len(extra_valves) == 0:
             ret_val += curr_total_flow_rate * (30 - duration)
             break
+
+        if (max_pressure_released - ret_val) / len(extra_valves) / (30 - duration) > FULL_BLAST_FLOWRATE:
+            break
+
         next_valve = extra_valves.pop(0)
         time_interval = SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[valve][next_valve] + 1
         duration += time_interval
@@ -67,9 +71,10 @@ def already_visited(new_valve_dest):
     # Hasn't been already visited
     return False
 
+FULL_BLAST_FLOWRATE = 0
 # Read input from the input file
 # Fill in VALVE_CONSTANTS and NONZERO_VALVES
-input_filename='input_sample0.txt'
+input_filename='input.txt'
 print(f'\nUsing input file: {input_filename}\n')
 with open(input_filename) as f:
     # Pull in each line from the input file
@@ -81,6 +86,8 @@ with open(input_filename) as f:
         VALVE_CONSTANTS[valve_constant.name] = valve_constant
         if valve_constant.flow_rate > 0:
             NONZERO_VALVES.append(valve_constant.name)
+        
+        FULL_BLAST_FLOWRATE += valve_constant.flow_rate
     print()
 del input_filename
 del in_string
@@ -154,7 +161,7 @@ del curr_valves
 del curr_valve
 
 # # TESTING ONLY !!!!!!
-# get_pressure_released('DD', 1, ['BB', 'JJ', 'HH', 'EE', 'CC'])
+# get_pressure_released__old('DD', 1, ['BB', 'JJ', 'HH', 'EE', 'CC'])
 
 
 
@@ -163,8 +170,27 @@ max_pressure_released = 0
 for init_valve, init_duration in INITIAL_NONZERO_VALVES.items():
     remaining_valves = copy.copy(NONZERO_VALVES)
     remaining_valves.remove(init_valve)
-    for extra_valves in permutations(remaining_valves, len(remaining_valves)):
-        max_pressure_released = max(max_pressure_released, get_pressure_released(init_valve, init_duration, list(extra_valves)))
+
+    path = {'valve_path': [init_valve], 'path_durations': [init_duration]}
+
+    
+    for i in range(len(remaining_valves)):
+        # recursive call
+        next_valve = remaining_valves.pop(i)
+        
+        path['path_durations'].append(path['path_durations'][-1] + SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[path['valve_path'][-1]][next_valve])
+        path['valve_path'].append(next_valve)
+        if sum(path['path_durations']) < 31:
+            ret_val = special_function(remaining_valves, path)
+        else:
+            ret_val = get_pressure_released(path)
+        # get_pressure_released(valve, duration, extra_valves, max_pressure_released):
+        return ret_val
+
+
+
+    # for extra_valves in permutations(remaining_valves, len(remaining_valves)):
+    #     max_pressure_released = max(max_pressure_released, get_pressure_released__old(init_valve, init_duration, list(extra_valves), max_pressure_released))
 
 print(f'Maximum pressure released of all paths is: {max_pressure_released}\n')
 
