@@ -53,12 +53,14 @@ def special_function(remaining_valves_sf, path, i):
     elif sum(path['path_durations']) < TIME_LIMIT:
         for i_new in range(len(remaining_valves_sf)):
             ret_val = max(ret_val, special_function(copy.deepcopy(remaining_valves_sf), copy.deepcopy(path), i_new))
+
+            dummy = 123
+
     else:
         path['path_durations'].pop()
         path['valve_path'].pop()
 
         p_release, ending_flowrate = get_pressure_released(path)
-        # ret_val = max(ret_val, p_release + (TIME_LIMIT - sum(path['path_durations'])) * ending_flowrate)
         ret_val = max(ret_val, p_release)
     return ret_val
 
@@ -170,16 +172,17 @@ del curr_valve
 # path['valve_path'] = ['DD', 'JJ', 'CC', 'HH', 'BB', 'EE']
 # path['path_durations'] = [2, 4, 5, 6, 7, 4]
 
-path_dict = {'valve_path': ['DD', 'BB'], 'path_durations': [2, 3]}
+# path_dict = {'valve_path': ['DD', 'BB'], 'path_durations': [2, 3]}
+path_dict = {'valve_path': ['KM', 'IC', 'GB', 'OE', 'KT', 'AK'], 'path_durations': [3, 4, 4, 10, 3, 3]}
 # get_pressure_released(path_dict)
 
 max_pressure_released = 0
+ret_val = 0
 for init_valve, init_duration in INITIAL_NONZERO_VALVES.items():
     remaining_valves = copy.deepcopy(NONZERO_VALVES)
     remaining_valves.remove(init_valve)
 
     path_dict = {'valve_path': [init_valve], 'path_durations': [init_duration]}
-    ret_val = 0
     
     for i in range(len(remaining_valves)):
         # recursive call
