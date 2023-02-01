@@ -24,7 +24,6 @@ def create_valve(in_string):
 
 def get_pressure_released(path_dict):
     # path_dict is {'valve_path': list_of_valves, 'path_durations': list_of_durations}
-    # return 42
     curr_total_flow_rate = 0
     duration_total = 0
     pressure_released = 0
@@ -35,97 +34,40 @@ def get_pressure_released(path_dict):
         pressure_released += duration_this_valve * curr_total_flow_rate
         curr_total_flow_rate += VALVE_CONSTANTS[path_dict['valve_path'][valve_index]].flow_rate
         
-        dummy = 123
-    
-    if duration_total < 30:
-        pressure_released += (30 - duration_total) * curr_total_flow_rate
+    if duration_total < TIME_LIMIT:
+        pressure_released += (TIME_LIMIT - duration_total) * curr_total_flow_rate
 
     # print(pressure_released)
     return pressure_released, curr_total_flow_rate
 
 
-# def get_pressure_released__old(valve, duration, extra_valves, max_pressure_released):
-
-
-#     # print(f'Inputs: {duration}: {valve}, {extra_valves}')
-
-
-#     curr_total_flow_rate = VALVE_CONSTANTS[valve].flow_rate
-#     duration += 1
-#     # ret_val = curr_total_flow_rate
-#     ret_val = 0
-
-
-    
-#     while True:
-#         if len(extra_valves) == 0:
-#             ret_val += curr_total_flow_rate * (30 - duration)
-#             break
-
-#         if (max_pressure_released - ret_val) / len(extra_valves) / (30 - duration) > FULL_BLAST_FLOWRATE:
-#             break
-
-#         next_valve = extra_valves.pop(0)
-#         time_interval = SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[valve][next_valve] + 1
-#         duration += time_interval
-#         if duration + time_interval >= 31:
-#             ret_val += curr_total_flow_rate * (31 - duration)
-#             break
-#         ret_val += time_interval * curr_total_flow_rate
-#         # if len(extra_valves) == 0:
-#         #     break
-#         # ret_val = duration * curr_total_flow_rate
-#         valve = next_valve
-#         curr_total_flow_rate += VALVE_CONSTANTS[valve].flow_rate
-#     # print(ret_val)
-#     return ret_val
-
-
-
 def special_function(remaining_valves_sf, path, i):
     ret_val = 0
-    # try:
-    # remaining_valves_sf = copy.deepcopy(remaining_valves)
     next_valve = remaining_valves_sf.pop(i)
-    # except IndexError:
-        # dummy = 123
-    
-    path['path_durations'].append(SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[path['valve_path'][-1]][next_valve] + 1)
+    path['path_durations'].append(SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[path['valve_path'][-1]][next_valve] + 1)
     path['valve_path'].append(next_valve)
     if len(remaining_valves_sf) == 0:
         ret_val = max(ret_val, get_pressure_released(path)[0])
-    elif sum(path['path_durations']) == 30:
+    elif sum(path['path_durations']) == TIME_LIMIT:
         ret_val = max(ret_val, get_pressure_released(path)[0])
-    elif sum(path['path_durations']) < 30:
-        
+    elif sum(path['path_durations']) < TIME_LIMIT:
         for i_new in range(len(remaining_valves_sf)):
             ret_val = max(ret_val, special_function(copy.deepcopy(remaining_valves_sf), copy.deepcopy(path), i_new))
-
-            dummy = 123
-
-
     else:
         path['path_durations'].pop()
         path['valve_path'].pop()
 
         p_release, ending_flowrate = get_pressure_released(path)
-        ret_val = max(ret_val, p_release + (30 - sum(path['path_durations'])) * ending_flowrate)
-
-
-
-# (30 - duration_total) * curr_total_flow_rate
-
-
-
+        # ret_val = max(ret_val, p_release + (TIME_LIMIT - sum(path['path_durations'])) * ending_flowrate)
+        ret_val = max(ret_val, p_release)
     return ret_val
-    # get_pressure_released__old(valve, duration, extra_valves, max_pressure_released):
 
 
-
+TIME_LIMIT = 30
 
 VALVE_CONSTANTS = dict()
 NONZERO_VALVES = list()
-SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES = dict()
+SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES = dict()
 
 def already_visited(new_valve_dest):
     for the_value in valves_dest.values():
@@ -161,9 +103,9 @@ del valve_constant
 # Use VALVE_CONSTANTS and NONZERO_VALVES to develop a graph describing distances 
 # between all non-zero flowrate valves
 for valve_orig in NONZERO_VALVES:
-    SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[valve_orig] = {valve_orig: 0}
+    SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[valve_orig] = {valve_orig: 0}
     valves_dest = {0:[valve_orig]}
-    while len(SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[valve_orig]) < len(NONZERO_VALVES):
+    while len(SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[valve_orig]) < len(NONZERO_VALVES):
         old_distance = min(valves_dest.keys())
         valve_old_dest = valves_dest[old_distance].pop()
         if len(valves_dest[old_distance]) == 0:
@@ -175,7 +117,7 @@ for valve_orig in NONZERO_VALVES:
                 valves_dest[old_distance + 1] = []
             valves_dest[old_distance + 1].append(new_valve_dest)
             if VALVE_CONSTANTS[new_valve_dest].flow_rate > 0:
-                SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[valve_orig][new_valve_dest] = old_distance + 1
+                SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[valve_orig][new_valve_dest] = old_distance + 1
         if float('inf') not in valves_dest:
             valves_dest[float('inf')] = list()
         valves_dest[float('inf')].append(valve_old_dest)
@@ -187,7 +129,7 @@ del new_valve_dest
 del valves_dest
 
 
-# If starting state was at a valve with a flowrate > 0, then SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES would have all that's needed to solve the problem.  However, both given examples have the starting position at a zero flowrate valve.
+# If starting state was at a valve with a flowrate > 0, then SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES would have all that's needed to solve the problem.  However, both given examples have the starting position at a zero flowrate valve.
 
 known_valves = dict()
 curr_valves = {'AA': 0}
@@ -224,11 +166,12 @@ del valves_to_pop
 del curr_valves
 del curr_valve
 
-# # TESTING ONLY !!!!!!
-# get_pressure_released__old('DD', 1, ['BB', 'JJ', 'HH', 'EE', 'CC'])
+# TESTING ONLY !!!!!!
+# path['valve_path'] = ['DD', 'JJ', 'CC', 'HH', 'BB', 'EE']
+# path['path_durations'] = [2, 4, 5, 6, 7, 4]
 
-
-
+path_dict = {'valve_path': ['DD', 'BB'], 'path_durations': [2, 3]}
+# get_pressure_released(path_dict)
 
 max_pressure_released = 0
 for init_valve, init_duration in INITIAL_NONZERO_VALVES.items():
@@ -241,26 +184,6 @@ for init_valve, init_duration in INITIAL_NONZERO_VALVES.items():
     for i in range(len(remaining_valves)):
         # recursive call
         ret_val = max(ret_val, special_function(copy.deepcopy(remaining_valves), copy.deepcopy(path_dict), i))
-        # next_valve = remaining_valves.pop(i)
-        
-        # path['path_durations'].append(path['path_durations'][-1] + SHORTEST_DISTANCE_BETWEEN_NONZERO_VALUES[path['valve_path'][-1]][next_valve])
-        # path['valve_path'].append(next_valve)
-        # if sum(path['path_durations']) < 31:
-        #     ret_val = special_function(remaining_valves, path)
-        # else:
-        #     ret_val = get_pressure_released(path)
-        # # get_pressure_released__old(valve, duration, extra_valves, max_pressure_released):
-        # return ret_val
-
-
-
-    # for extra_valves in permutations(remaining_valves, len(remaining_valves)):
-    #     max_pressure_released = max(max_pressure_released, get_pressure_released__old(init_valve, init_duration, list(extra_valves), max_pressure_released))
 
 print(f'Maximum pressure released of all paths is: {ret_val}\n')
-
-
-
-
-
 
