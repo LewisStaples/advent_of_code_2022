@@ -37,41 +37,43 @@ def get_pressure_released(path_dict):
     if duration_total < TIME_LIMIT:
         pressure_released += (TIME_LIMIT - duration_total) * curr_total_flow_rate
 
-    # print(pressure_released)
-    return pressure_released, curr_total_flow_rate
+    return pressure_released
 
 
-def special_function(remaining_valves_sf, path, i):
+# This function uses recursion to add a valve.
+# Then it calculates elapsed time versus the time limit, 
+# as well as if all valves have been opened.
+#
+# On the basis of those results it may attempt to 
+# add new valves (with a recursive call to itself), 
+# or stop adding valves, in which case it calls 
+# get_pressure_released to get the pressure released
+# from this sequence of valves
+def add_valve(remaining_valves_sf, path, i):
     ret_val = 0
     next_valve = remaining_valves_sf.pop(i)
     path['path_durations'].append(SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[path['valve_path'][-1]][next_valve] + 1)
     path['valve_path'].append(next_valve)
     if len(remaining_valves_sf) == 0:
-        ret_val = max(ret_val, get_pressure_released(path)[0])
+        ret_val = max(ret_val, get_pressure_released(path))
     elif sum(path['path_durations']) == TIME_LIMIT:
-        ret_val = max(ret_val, get_pressure_released(path)[0])
+        ret_val = max(ret_val, get_pressure_released(path))
     elif sum(path['path_durations']) < TIME_LIMIT:
         for i_new in range(len(remaining_valves_sf)):
-            ret_val = max(ret_val, special_function(copy.deepcopy(remaining_valves_sf), copy.deepcopy(path), i_new))
-
-            dummy = 123
-
+            ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves_sf), copy.deepcopy(path), i_new))
     else:
+        # Addition of the most recent valve exceeded the time limit,
+        # therefore remove that most recent valve, so you won't
+        # calculate total pressure released for a forbidden combinations of open valves
         path['path_durations'].pop()
         path['valve_path'].pop()
 
-        p_release, ending_flowrate = get_pressure_released(path)
+        p_release = get_pressure_released(path)
         ret_val = max(ret_val, p_release)
     return ret_val
 
 
-TIME_LIMIT = 30
-
-VALVE_CONSTANTS = dict()
-NONZERO_VALVES = list()
-SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES = dict()
-
-def already_visited(new_valve_dest):
+def already_visited(new_valve_dest, valves_dest):
     for the_value in valves_dest.values():
         if new_valve_dest in the_value:
             # Determined that it's been already visited
@@ -79,102 +81,82 @@ def already_visited(new_valve_dest):
     # Hasn't been already visited
     return False
 
-FULL_BLAST_FLOWRATE = 0
 # Read input from the input file
-# Fill in VALVE_CONSTANTS and NONZERO_VALVES
-input_filename='input.txt'
-print(f'\nUsing input file: {input_filename}\n')
-with open(input_filename) as f:
-    # Pull in each line from the input file
-    for in_string in f:
-        in_string = in_string.rstrip()
-        print(in_string)
+# Fill in valve_constants and nonzero_valves
+def get_input(input_filename):
+    valve_constants = dict()
+    nonzero_valves = list()
+    print(f'\nUsing input file: {input_filename}\n')
+    with open(input_filename) as f:
+        # Pull in each line from the input file
+        for in_string in f:
+            in_string = in_string.rstrip()
+            print(in_string)
 
-        valve_constant = create_valve(in_string)
-        VALVE_CONSTANTS[valve_constant.name] = valve_constant
-        if valve_constant.flow_rate > 0:
-            NONZERO_VALVES.append(valve_constant.name)
-        
-        FULL_BLAST_FLOWRATE += valve_constant.flow_rate
-    print()
-del input_filename
-del in_string
-del f
-del valve_constant
+            valve_constant = create_valve(in_string)
+            valve_constants[valve_constant.name] = valve_constant
+            if valve_constant.flow_rate > 0:
+                nonzero_valves.append(valve_constant.name)
+        print()
+    return valve_constants, nonzero_valves
+
 
 # Use VALVE_CONSTANTS and NONZERO_VALVES to develop a graph describing distances 
 # between all non-zero flowrate valves
-for valve_orig in NONZERO_VALVES:
-    SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[valve_orig] = {valve_orig: 0}
-    valves_dest = {0:[valve_orig]}
-    while len(SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[valve_orig]) < len(NONZERO_VALVES):
-        old_distance = min(valves_dest.keys())
-        valve_old_dest = valves_dest[old_distance].pop()
-        if len(valves_dest[old_distance]) == 0:
-            del valves_dest[old_distance]
-        for new_valve_dest in VALVE_CONSTANTS[valve_old_dest].valves_via_tunnel:
-            if already_visited(new_valve_dest):
-                continue
-            if old_distance + 1 not in valves_dest:
-                valves_dest[old_distance + 1] = []
-            valves_dest[old_distance + 1].append(new_valve_dest)
-            if VALVE_CONSTANTS[new_valve_dest].flow_rate > 0:
-                SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[valve_orig][new_valve_dest] = old_distance + 1
-        if float('inf') not in valves_dest:
-            valves_dest[float('inf')] = list()
-        valves_dest[float('inf')].append(valve_old_dest)
-
-del valve_orig
-del valve_old_dest
-del old_distance
-del new_valve_dest
-del valves_dest
+def get_sdbnv(VALVE_CONSTANTS, NONZERO_VALVES):
+    for valve_orig in NONZERO_VALVES:
+        SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[valve_orig] = {valve_orig: 0}
+        valves_dest = {0:[valve_orig]}
+        while len(SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[valve_orig]) < len(NONZERO_VALVES):
+            old_distance = min(valves_dest.keys())
+            valve_old_dest = valves_dest[old_distance].pop()
+            if len(valves_dest[old_distance]) == 0:
+                del valves_dest[old_distance]
+            for new_valve_dest in VALVE_CONSTANTS[valve_old_dest].valves_via_tunnel:
+                if already_visited(new_valve_dest, valves_dest):
+                    continue
+                if old_distance + 1 not in valves_dest:
+                    valves_dest[old_distance + 1] = []
+                valves_dest[old_distance + 1].append(new_valve_dest)
+                if VALVE_CONSTANTS[new_valve_dest].flow_rate > 0:
+                    SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[valve_orig][new_valve_dest] = old_distance + 1
+            if float('inf') not in valves_dest:
+                valves_dest[float('inf')] = list()
+            valves_dest[float('inf')].append(valve_old_dest)
+    return SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES
 
 
 # If starting state was at a valve with a flowrate > 0, then SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES would have all that's needed to solve the problem.  However, both given examples have the starting position at a zero flowrate valve.
+def get_initial_nonzero_valves(NONZERO_VALVES, VALVE_CONSTANTS):
+    known_valves = dict()
+    curr_valves = {'AA': 0}
+    next_valves = list()
+    while len(curr_valves) > 0:
+        curr_valve, path_distance = curr_valves.popitem()
+        if curr_valve in known_valves:
+            continue
+        if curr_valve in NONZERO_VALVES:
+            known_valves[curr_valve] = path_distance + 1
+            continue
+        else:
+            known_valves[curr_valve] = None
+        for next_valve in VALVE_CONSTANTS[curr_valve].valves_via_tunnel:
+            if next_valve not in known_valves:
+                curr_valves[next_valve] = path_distance + 1
+    valves_to_pop = list()
+    for valve_id, distance in known_valves.items():
+        if distance is None:
+            valves_to_pop.append(valve_id)
+    for valve_id in valves_to_pop:
+        known_valves.pop(valve_id)
+    return known_valves
 
-known_valves = dict()
-curr_valves = {'AA': 0}
-next_valves = list()
-while len(curr_valves) > 0:
-    curr_valve, path_distance = curr_valves.popitem()
-    if curr_valve in known_valves:
-        continue
-    if curr_valve in NONZERO_VALVES:
-        known_valves[curr_valve] = path_distance + 1
-        continue
-    else:
-        known_valves[curr_valve] = None
-    
-    for next_valve in VALVE_CONSTANTS[curr_valve].valves_via_tunnel:
-        if next_valve not in known_valves:
-            curr_valves[next_valve] = path_distance + 1
+TIME_LIMIT = 30
+SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES = dict()
+VALVE_CONSTANTS, NONZERO_VALVES = get_input('input_sample0.txt')
+SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES = get_sdbnv(VALVE_CONSTANTS, NONZERO_VALVES)
+INITIAL_NONZERO_VALVES = get_initial_nonzero_valves(NONZERO_VALVES, VALVE_CONSTANTS)
 
-valves_to_pop = list()
-for valve_id, distance in known_valves.items():
-    if distance is None:
-
-        valves_to_pop.append(valve_id)
-for valve_id in valves_to_pop:
-    known_valves.pop(valve_id)
-INITIAL_NONZERO_VALVES = known_valves
-del known_valves
-del valve_id
-del path_distance
-del next_valves
-del next_valve
-del distance
-del valves_to_pop
-del curr_valves
-del curr_valve
-
-# TESTING ONLY !!!!!!
-# path['valve_path'] = ['DD', 'JJ', 'CC', 'HH', 'BB', 'EE']
-# path['path_durations'] = [2, 4, 5, 6, 7, 4]
-
-# path_dict = {'valve_path': ['DD', 'BB'], 'path_durations': [2, 3]}
-path_dict = {'valve_path': ['KM', 'IC', 'GB', 'OE', 'KT', 'AK'], 'path_durations': [3, 4, 4, 10, 3, 3]}
-# get_pressure_released(path_dict)
 
 max_pressure_released = 0
 ret_val = 0
@@ -186,7 +168,7 @@ for init_valve, init_duration in INITIAL_NONZERO_VALVES.items():
     
     for i in range(len(remaining_valves)):
         # recursive call
-        ret_val = max(ret_val, special_function(copy.deepcopy(remaining_valves), copy.deepcopy(path_dict), i))
+        ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves), copy.deepcopy(path_dict), i))
 
 print(f'Maximum pressure released of all paths is: {ret_val}\n')
 
