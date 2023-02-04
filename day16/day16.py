@@ -5,6 +5,7 @@
 from dataclasses import dataclass
 from itertools import permutations
 import copy
+import itertools
 
 @dataclass
 class Valve:
@@ -23,22 +24,30 @@ def create_valve(in_string):
 
 
 def get_pressure_released(path_dict):
-    # path_dict is {'valve_path': list_of_valves, 'path_durations': list_of_durations}
-    curr_total_flow_rate = 0
-    duration_total = 0
-    pressure_released = 0
+    pass
 
-    for valve_index in range(len(path_dict['valve_path'])):
-        duration_this_valve = path_dict['path_durations'][valve_index]
-        duration_total += duration_this_valve
-        pressure_released += duration_this_valve * curr_total_flow_rate
-        curr_total_flow_rate += VALVE_CONSTANTS[path_dict['valve_path'][valve_index]].flow_rate
+    # # path_dict is {'valve_path': list_of_valves, 'path_durations': list_of_durations}
+    # curr_total_flow_rate = 0
+    # duration_total = 0
+    # pressure_released = 0
+
+    # for valve_index in range(len(path_dict['valve_path'])):
+    #     duration_this_valve = path_dict['path_durations'][valve_index]
+    #     duration_total += duration_this_valve
+    #     pressure_released += duration_this_valve * curr_total_flow_rate
+    #     curr_total_flow_rate += VALVE_CONSTANTS[path_dict['valve_path'][valve_index]].flow_rate
         
-    if duration_total < TIME_LIMIT:
-        pressure_released += (TIME_LIMIT - duration_total) * curr_total_flow_rate
+    # if duration_total < TIME_LIMIT:
+    #     pressure_released += (TIME_LIMIT - duration_total) * curr_total_flow_rate
 
-    return pressure_released
+    # return pressure_released
 
+
+# def add_valve(remaining_valves_av, open_valves_av, player_locations):
+def add_valve(remaining_valves, open_valves, player_locations): # , next_valve):
+
+
+    return 42
 
 # This function uses recursion to add a valve.
 # Then it calculates elapsed time versus the time limit, 
@@ -49,28 +58,29 @@ def get_pressure_released(path_dict):
 # or stop adding valves, in which case it calls 
 # get_pressure_released to get the pressure released
 # from this sequence of valves
-def add_valve(remaining_valves_sf, path, i):
-    ret_val = 0
-    next_valve = remaining_valves_sf.pop(i)
-    path['path_durations'].append(SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[path['valve_path'][-1]][next_valve] + 1)
-    path['valve_path'].append(next_valve)
-    if len(remaining_valves_sf) == 0:
-        ret_val = max(ret_val, get_pressure_released(path))
-    elif sum(path['path_durations']) == TIME_LIMIT:
-        ret_val = max(ret_val, get_pressure_released(path))
-    elif sum(path['path_durations']) < TIME_LIMIT:
-        for i_new in range(len(remaining_valves_sf)):
-            ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves_sf), copy.deepcopy(path), i_new))
-    else:
-        # Addition of the most recent valve exceeded the time limit,
-        # therefore remove that most recent valve, so you won't
-        # calculate total pressure released for a forbidden combinations of open valves
-        path['path_durations'].pop()
-        path['valve_path'].pop()
 
-        p_release = get_pressure_released(path)
-        ret_val = max(ret_val, p_release)
-    return ret_val
+# def add_valve(remaining_valves_sf, path, i):
+    # ret_val = 0
+    # next_valve = remaining_valves_sf.pop(i)
+    # path['path_durations'].append(SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[path['valve_path'][-1]][next_valve] + 1)
+    # path['valve_path'].append(next_valve)
+    # if len(remaining_valves_sf) == 0:
+    #     ret_val = max(ret_val, get_pressure_released(path))
+    # elif sum(path['path_durations']) == TIME_LIMIT:
+    #     ret_val = max(ret_val, get_pressure_released(path))
+    # elif sum(path['path_durations']) < TIME_LIMIT:
+    #     for i_new in range(len(remaining_valves_sf)):
+    #         ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves_sf), copy.deepcopy(path), i_new))
+    # else:
+    #     # Addition of the most recent valve exceeded the time limit,
+    #     # therefore remove that most recent valve, so you won't
+    #     # calculate total pressure released for a forbidden combinations of open valves
+    #     path['path_durations'].pop()
+    #     path['valve_path'].pop()
+
+    #     p_release = get_pressure_released(path)
+    #     ret_val = max(ret_val, p_release)
+    # return ret_val
 
 
 def already_visited(new_valve_dest, valves_dest):
@@ -151,24 +161,61 @@ def get_initial_nonzero_valves(NONZERO_VALVES, VALVE_CONSTANTS):
         known_valves.pop(valve_id)
     return known_valves
 
+START_TIME = 0
+
+
 TIME_LIMIT = 30
+NUMBER_OF_PLAYERS = 2
+player_locations = list()
+
 SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES = dict()
 VALVE_CONSTANTS, NONZERO_VALVES = get_input('input_sample0.txt')
 SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES = get_sdbnv(VALVE_CONSTANTS, NONZERO_VALVES)
 INITIAL_NONZERO_VALVES = get_initial_nonzero_valves(NONZERO_VALVES, VALVE_CONSTANTS)
-
-
 max_pressure_released = 0
 ret_val = 0
-for init_valve, init_duration in INITIAL_NONZERO_VALVES.items():
-    remaining_valves = copy.deepcopy(NONZERO_VALVES)
-    remaining_valves.remove(init_valve)
 
-    path_dict = {'valve_path': [init_valve], 'path_durations': [init_duration]}
+
+# LOGIC WITH OLD DATA STRUCTURES ...
+# for init_valve, init_duration in INITIAL_NONZERO_VALVES.items():
+#     remaining_valves = copy.deepcopy(NONZERO_VALVES)
+#     remaining_valves.remove(init_valve)
+
+#     path_dict = {'valve_path': [init_valve], 'path_durations': [init_duration]}
     
-    for i in range(len(remaining_valves)):
-        # recursive call
-        ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves), copy.deepcopy(path_dict), i))
+#     for i in range(len(remaining_valves)):
+#         # recursive call
+#         ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves), copy.deepcopy(path_dict), i))
 
-print(f'Maximum pressure released of all paths is: {ret_val}\n')
+# print(f'Maximum pressure released of all paths is: {ret_val}\n')
+
+
+
+# for init_valve, v1_end_time in INITIAL_NONZERO_VALVES.items():
+for init_valves__tuples_nested in itertools.permutations(INITIAL_NONZERO_VALVES.items(), NUMBER_OF_PLAYERS):
+    remaining_valves = copy.deepcopy(NONZERO_VALVES)
+    open_valves = dict()
+    end_time = float('inf')
+    # next_valves = []
+    for k,v in init_valves__tuples_nested:
+        open_valves[k] = v
+        # if v == min(open_valves.values()):
+        #     next_valve = k
+        remaining_valves.remove(k)
+        player_locations.append(k)
+    # recursive call
+    ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves), copy.deepcopy(open_valves), player_locations)) # , next_valve))
+#         ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves), copy.deepcopy(path_dict), i))
+
+
+
+
+
+#     # for i in range(len(remaining_valves)):
+#     for valves_next in itertools.permutations(remaining_valves,  NUMBER_OF_PLAYERS):
+#         player_locations = list(valves_next)
+#         # recursive call
+#         ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves), copy.deepcopy(open_valves), player_locations))
+# #         ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves), copy.deepcopy(path_dict), i))
+
 
