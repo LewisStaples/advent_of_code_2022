@@ -44,7 +44,37 @@ def get_pressure_released(path_dict):
 
 
 # def add_valve(remaining_valves_av, open_valves_av, player_locations):
-def add_valve(remaining_valves, open_valves, player_locations): # , next_valve):
+# def add_valve(remaining_valves, open_valves, player_locations): # , next_valve):
+
+def add_valve(remaining_valves, open_valves, player_locations, newest_valves):
+    # next_valve = next_valves_av.pop()
+    start_time = open_valves[newest_valves[0]]
+    for i, newest_valve in enumerate(newest_valves):
+        newest_valves_av = copy.deepcopy(newest_valves)
+        newest_valve_av = newest_valves_av.pop(i)
+        for j, next_valve in enumerate(remaining_valves):
+            end_time = start_time + SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES[newest_valve_av][next_valve]
+
+            remaining_valves_av = copy.deepcopy(remaining_valves)
+            remaining_valves_av.pop(j)
+
+            open_valves_av = copy.deepcopy(open_valves)
+            open_valves_av[next_valve] = end_time
+
+            # If it's hit the time limit, get_pressure_released
+            # If it's over the time limit, remove the latest added valve and get_pressure_released
+            # If it's under the time limit
+                # If no valves remaining, get_pressure_released
+                # Otherwise, do recursive call to add another valve
+
+    # if len(remaining_valves_sf) == 0:
+    #     ret_val = max(ret_val, get_pressure_released(path))
+    # elif sum(path['path_durations']) == TIME_LIMIT:
+    #     ret_val = max(ret_val, get_pressure_released(path))
+    # elif sum(path['path_durations']) < TIME_LIMIT:
+    #     for i_new in range(len(remaining_valves_sf)):
+    #         ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves_sf), copy.deepcopy(path), i_new))
+    # else:
 
 
     return 42
@@ -169,7 +199,7 @@ NUMBER_OF_PLAYERS = 2
 player_locations = list()
 
 SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES = dict()
-VALVE_CONSTANTS, NONZERO_VALVES = get_input('input_sample0.txt')
+VALVE_CONSTANTS, NONZERO_VALVES = get_input('input.txt')
 SHORTEST_DISTANCE_BETWEEN_NONZERO_VALVES = get_sdbnv(VALVE_CONSTANTS, NONZERO_VALVES)
 INITIAL_NONZERO_VALVES = get_initial_nonzero_valves(NONZERO_VALVES, VALVE_CONSTANTS)
 max_pressure_released = 0
@@ -196,15 +226,18 @@ for init_valves__tuples_nested in itertools.permutations(INITIAL_NONZERO_VALVES.
     remaining_valves = copy.deepcopy(NONZERO_VALVES)
     open_valves = dict()
     end_time = float('inf')
-    # next_valves = []
     for k,v in init_valves__tuples_nested:
         open_valves[k] = v
-        # if v == min(open_valves.values()):
-        #     next_valve = k
         remaining_valves.remove(k)
         player_locations.append(k)
+    
+    next_valves = [
+        valve
+        for valve in open_valves.keys()
+        if open_valves[valve] == min(open_valves.values())
+    ]
     # recursive call
-    ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves), copy.deepcopy(open_valves), player_locations)) # , next_valve))
+    ret_val = max(ret_val, add_valve(remaining_valves, open_valves, player_locations, next_valves))
 #         ret_val = max(ret_val, add_valve(copy.deepcopy(remaining_valves), copy.deepcopy(path_dict), i))
 
 
